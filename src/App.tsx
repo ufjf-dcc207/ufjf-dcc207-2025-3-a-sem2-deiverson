@@ -1,56 +1,65 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import "./App.css";
-import Tree from "./elements/Tree";
-import Car from "./elements/Car";
-import Bush from "./elements/Bush";
-import Button from "./elements/Button";
 import Floor from "./elements/Floor";
+import "./App.css";
 
+type Stage = {
+    floor: string;
+    playerPosition: [number, number];
+    position?: [number, number, number];
+};
 
+const stageOne: Stage = {
+    floor: `1
+2
+3
+4
+5
+`,
+    playerPosition: [0, 2],
+    position: [0, 0, 0],
+};
+const stageTwo: Stage = {
+    floor: `1111
+1221
+1232
+1121
+`,
+    playerPosition: [1, 1],
+    position: [-10, 0, 10],
+};
 
-function MapObjects() {
-    return (
-        <group>
-            <Tree position={[-3, 0, -3]} />
-            <Tree position={[4, 0, 2]} />
-            <Car position={[0, 0, -2]} />
-            <Bush position={[-2, 0, 1]} />
-            <Bush position={[-2.3, 0, 1.3]} />
-            <Button position={[2, 0, 3]} />
-        </group>
-    );
-}
+const stageThree: Stage = {
+    floor: `11111
+12221
+12321
+11211
+11111
+`,
+    playerPosition: [2, 2],
+    position: [-20, 0, 20],
+};
 
 export default function App() {
     return (
         <div id="canvas-container">
-            <Canvas shadows camera={{ position: [8, 8, 8], fov: 60 }}>
-
+            <Canvas shadows camera={{ position: [8, 8, 8], fov: 50 }}>
                 <ambientLight intensity={0.3} />
-                <directionalLight
-                    position={[10, 15, 5]}
-                    intensity={1.5}
-                    castShadow
-                    shadow-mapSize-width={2048}
-                    shadow-mapSize-height={2048}
-                    shadow-camera-far={50}
-                    shadow-camera-left={-10}
-                    shadow-camera-right={10}
-                    shadow-camera-top={10}
-                    shadow-camera-bottom={-10}
-
-                    shadow-bias={-0.0005}
-                />
+                <directionalLight position={[10, 15, 5]} intensity={1.5} castShadow />
                 <pointLight position={[-10, -5, -10]} intensity={0.2} />
 
-                <Floor gridSize={20} wallHeight={0.5} />
-
-                <MapObjects />
-
+                <group position={stageOne.position}>
+                    <Floor grid={stageOne.floor} playerPosition={stageOne.playerPosition} />
+                </group>
+                <group position={stageTwo.position}>
+                    <Floor grid={stageTwo.floor} playerPosition={stageTwo.playerPosition} />
+                </group>{" "}
+                <group position={stageThree.position}>
+                    <Floor grid={stageThree.floor} playerPosition={stageThree.playerPosition} />
+                </group>
+                
                 <OrbitControls />
             </Canvas>
         </div>
     );
 }
-
