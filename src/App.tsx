@@ -14,7 +14,8 @@ const stageOne: Stage = {
 2
 3
 4
-5
+3
+3
 `,
     playerPosition: [0, 2],
     position: [0, 0, 0],
@@ -31,9 +32,9 @@ const stageTwo: Stage = {
 
 const stageThree: Stage = {
     floor: `11111
-12221
-12321
-11211
+1 2 1
+1 3 1
+11 11
 11111
 `,
     playerPosition: [2, 2],
@@ -57,7 +58,7 @@ export default function App() {
                 <group position={stageThree.position}>
                     <Floor grid={stageThree.floor} playerPosition={stageThree.playerPosition} />
                 </group>
-                
+
                 <OrbitControls />
             </Canvas>
         </div>
