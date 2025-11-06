@@ -6,6 +6,8 @@ export type TileProps = {
     heigth: string;
     position: [number, number, number];
     steped?: boolean;
+    // button?: boolean;
+    // buttonActive?: boolean;
 };
 
 export type FloorProps = {
