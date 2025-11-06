@@ -11,11 +11,11 @@ type Stage = {
 
 const stageOne: Stage = {
     floor: `1
-2
-3
-4
-3
-3
+2 111
+3 1 1
+4 1 2
+3 2 3
+323 4
 `,
     playerPosition: [0, 2],
     position: [0, 0, 0],
@@ -32,9 +32,9 @@ const stageTwo: Stage = {
 
 const stageThree: Stage = {
     floor: `11111
-1 2 1
-1 3 1
-11 11
+12221
+12321
+12221
 11111
 `,
     playerPosition: [2, 2],
