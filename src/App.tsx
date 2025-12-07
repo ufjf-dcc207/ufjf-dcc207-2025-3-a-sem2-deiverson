@@ -47,84 +47,93 @@ export default function App() {
         setIsExecuting(true);
 
         const chars = commands.toLowerCase().split("");
-
-        // Carrega o mapa atual em memória para validar movimentos
         const gridMatrix = parseGrid(activeStage.floor);
-        console.log("Grid Matrix:", gridMatrix);
 
         let currX = playerGridPos[0];
         let currZ = playerGridPos[1];
         let currRot = playerRotation;
-
-        // Pega altura inicial correta
-        let currH = getBlockHeight(currX, currZ, gridMatrix);
-        // Se por acaso começar num buraco, assume 0
-        if (currH === -1) currH = 0;
-        console.log("currH:", currH);
-
-        setCurrentBlockHeight(currH);
+        let currH = currentBlockHeight;
 
         for (let char of chars) {
             await wait(500);
 
+            // Calcula qual é o bloco à frente do jogador
+            let targetX = currX;
+            let targetZ = currZ;
+
+            if (currRot === 0) targetZ += 1;
+            else if (currRot === 1) targetX += 1;
+            else if (currRot === 2) targetZ -= 1;
+            else if (currRot === 3) targetX -= 1;
+
+            //  Pega a altura do alvo
+            const targetH = getBlockHeight(targetX, targetZ, gridMatrix);
+            const isTargetValid = targetH !== -1; // Verifica se está dentro do mapa
+
+            // Variáveis para o próximo estado (inicialmente mantêm o atual)
             let nextX = currX;
             let nextZ = currZ;
+            let nextH = currH;
             let nextRot = currRot;
 
-            // --- CÁLCULO DA PRÓXIMA POSIÇÃO ---
             switch (char) {
-                case "f": // Frente (1 passo)
-                    if (currRot === 0) nextZ += 1; // 0 é Sul no seu Player original? Ajuste se necessário
-                    if (currRot === 1) nextX += 1;
-                    if (currRot === 2) nextZ -= 1;
-                    if (currRot === 3) nextX -= 1;
+                case "f": // FRENTE
+                    // Regra: Só move se for mesma altura ou 1 abaixo
+                    if (isTargetValid) {
+                        if (targetH === currH || targetH === currH - 1) {
+                            nextX = targetX;
+                            nextZ = targetZ;
+                            nextH = targetH;
+                        } else {
+                            console.log(`Bloqueado 'f': Altura alvo ${targetH} vs Atual ${currH}`);
+                        }
+                    } else {
+                        console.log("Bloqueado 'f': Fim do mapa");
+                    }
                     break;
-                case "p": // Pula (2 passos)
-                    if (currRot === 0) nextZ += 1;
-                    if (currRot === 1) nextX *= 1;
-                    if (currRot === 2) nextZ -= 1;
-                    if (currRot === 3) nextX -= 1;
+
+                case "p": // PULO
+                    if (isTargetValid) {
+                        // Regra: Sobe 1 nível
+                        if (targetH === currH + 1) {
+                            nextX = targetX;
+                            nextZ = targetZ;
+                            nextH = targetH;
+                        }
+                        // Regra: Mesma altura -> Pula no lugar não se move
+                        else if (targetH === currH) {
+                            console.log("Pulo no lugar (mesma altura)");
+                        }
+                        // Qualquer outra diferença (muito alto, ou descendo) não faz nada
+                        else {
+                            console.log(`Bloqueado 'p': Altura inválida para pulo`);
+                        }
+                    }
                     break;
-                case "t": // Trás
+
+                // ROTAÇÕES (Sem verificação de colisão)
+                case "t":
                     nextRot = (currRot + 2) % 4;
                     break;
-                case "e": // Esquerda
+                case "e":
                     nextRot = (currRot + 1) % 4;
                     break;
-                case "d": // Direita
+                case "d":
                     nextRot = (currRot + 3) % 4;
                     break;
-                case "b": // Botão
-                    console.log(`Ação no bloco [${currX}, ${currZ}]`);
-                    // TODO lógica do botão
+
+                case "b":
+                    console.log(`Botão pressionado em [${currX}, ${currZ}]`);
                     break;
             }
 
-            // --- VALIDAÇÕES DE MOVIMENTO (Apenas se houve tentativa de mover) ---
-            if (nextX !== currX || nextZ !== currZ) {
-                const nextH = getBlockHeight(nextX, nextZ, gridMatrix);
-
-                // 1. Verifica se saiu do mapa (nextH será -1)
-                if (nextH === -1) {
-                    console.log("Movimento bloqueado: Fora do mapa");
-                    // Não atualiza X e Z, boneco fica parado
-                }
-                // 2. Verifica diferença de altura (não pode ser > 1)
-                else if (Math.abs(nextH - currH) > 1) {
-                    console.log(`Movimento bloqueado: Altura incompatível (${currH} -> ${nextH})`);
-                    // Não atualiza X e Z
-                } else {
-                    // Movimento Válido!
-                    currX = nextX;
-                    currZ = nextZ;
-                    currH = nextH; // Atualiza a altura atual
-                }
-            }
-
-            // Atualiza rotação (sempre válida)
+            // Atualiza as variáveis locais para o próximo passo do loop
+            currX = nextX;
+            currZ = nextZ;
             currRot = nextRot;
+            currH = nextH;
 
-            // Atualiza Estados Visuais
+            // Atualiza os estados
             setPlayerGridPos([currX, currZ]);
             setPlayerRotation(currRot);
             setCurrentBlockHeight(currH);
