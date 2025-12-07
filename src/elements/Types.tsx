@@ -14,3 +14,10 @@ export type FloorProps = {
     grid: string;
     personaPosition?: [number, number];
 };
+
+export type Stage = {
+    id: number;
+    name: string;
+    floor: string;
+    playerPosition: [number, number];
+};
