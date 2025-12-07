@@ -1,15 +1,12 @@
 import { RoundedBox } from "@react-three/drei";
 import type { TileProps } from "./Types";
 
-export default function Tile({ position, heigth, steped = false }: TileProps) {
+export default function Tile({ position, height, isButton = false, isActive = false }: TileProps) {
     const tiles = [];
-    let heightInt = parseInt(heigth);
-    const button = heightInt > 5 || heightInt === 0;
+    if (height <= 0) return null;
 
-    if (button) heightInt = heightInt === 0 ? 5 : heightInt - 5;
-
-    for (let i = 0; i < heightInt; i++) {
-        const isTopBox = i === heightInt - 1;
+    for (let i = 0; i < height; i++) {
+        const isTopBox = i === height - 1;
 
         tiles.push(
             <RoundedBox
@@ -21,8 +18,8 @@ export default function Tile({ position, heigth, steped = false }: TileProps) {
                 receiveShadow
                 castShadow
             >
-                {isTopBox && steped ? (
-                    button ? (
+                {isTopBox && isActive ? (
+                    isButton ? (
                         <meshStandardMaterial
                             color="hsla(211, 61%, 59%, 1.00)"
                             emissive={"yellow"}
@@ -38,7 +35,7 @@ export default function Tile({ position, heigth, steped = false }: TileProps) {
                 ) : (
                     <meshStandardMaterial
                         color={
-                            isTopBox && button
+                            isTopBox && isButton
                                 ? "hsla(211, 61%, 39%, 1.00)"
                                 : "hsla(211, 61%, 59%, 1.00)"
                         }
@@ -47,12 +44,6 @@ export default function Tile({ position, heigth, steped = false }: TileProps) {
             </RoundedBox>
         );
     }
-    if (steped)
-        tiles.push(
-            <group position={[position[0], (heightInt - 1) * 0.5, position[2]]}>
-                {/* <Player /> */}
-            </group>
-        );
 
     return <group>{tiles}</group>;
 }

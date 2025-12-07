@@ -3,11 +3,10 @@ export type MapObjectProps = {
 };
 
 export type TileProps = {
-    heigth: string;
+    height: number;
     position: [number, number, number];
-    steped?: boolean;
-    // button?: boolean;
-    // buttonActive?: boolean;
+    isButton?: boolean; 
+    isActive?: boolean; 
 };
 
 export type FloorProps = {

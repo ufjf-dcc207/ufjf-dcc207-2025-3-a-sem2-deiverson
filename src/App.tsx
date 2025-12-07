@@ -8,23 +8,16 @@ import type { Stage } from "./elements/Types";
 import "./App.css";
 
 export default function App() {
-    // Estado da fase ativa
     const [activeStage, setActiveStage] = useState<Stage>(stagesList[0]);
-
-    // Estado da posição atual do jogador
+    const [activeButtons, setActiveButtons] = useState<string[]>([]);
     const [playerGridPos, setPlayerGridPos] = useState<[number, number]>(
         stagesList[0].playerPosition
     );
 
     const [currentBlockHeight, setCurrentBlockHeight] = useState(() => {
-        const initialStage = stagesList[0];
-        const grid = parseGrid(initialStage.floor);
-        const [startX, startZ] = initialStage.playerPosition;
-
-        // Busca a altura na matriz
-        const h = getBlockHeight(startX, startZ, grid);
-
-        // Retorna a altura (ou 0 se der erro)
+        const heightMatrix = parseGridToHeights(stagesList[0].floor);
+        const [x, z] = stagesList[0].playerPosition;
+        const h = getBlockHeight(x, z, heightMatrix);
         return h === -1 ? 0 : h;
     });
 
@@ -36,10 +29,7 @@ export default function App() {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
-        // Regex: Aceita apenas os caracteres permitidos (case insensitive)
-        if (/^[fedtpb]*$/i.test(val)) {
-            setCommands(val);
-        }
+        if (/^[fedtpb]*$/i.test(val)) setCommands(val);
     };
 
     const executeCommands = async () => {
@@ -47,17 +37,18 @@ export default function App() {
         setIsExecuting(true);
 
         const chars = commands.toLowerCase().split("");
-        const gridMatrix = parseGrid(activeStage.floor);
+        const heightMatrix = parseGridToHeights(activeStage.floor);
 
         let currX = playerGridPos[0];
         let currZ = playerGridPos[1];
         let currRot = playerRotation;
         let currH = currentBlockHeight;
 
+        let currActiveButtons = [...activeButtons];
+
         for (let char of chars) {
             await wait(500);
 
-            // Calcula qual é o bloco à frente do jogador
             let targetX = currX;
             let targetZ = currZ;
 
@@ -66,52 +57,35 @@ export default function App() {
             else if (currRot === 2) targetZ -= 1;
             else if (currRot === 3) targetX -= 1;
 
-            //  Pega a altura do alvo
-            const targetH = getBlockHeight(targetX, targetZ, gridMatrix);
-            const isTargetValid = targetH !== -1; // Verifica se está dentro do mapa
+            const targetH = getBlockHeight(targetX, targetZ, heightMatrix);
+            const isTargetValid = targetH !== -1;
 
-            // Variáveis para o próximo estado (inicialmente mantêm o atual)
             let nextX = currX;
             let nextZ = currZ;
             let nextH = currH;
             let nextRot = currRot;
 
             switch (char) {
-                case "f": // FRENTE
-                    // Regra: Só move se for mesma altura ou 1 abaixo
+                case "f":
                     if (isTargetValid) {
                         if (targetH === currH || targetH === currH - 1) {
                             nextX = targetX;
                             nextZ = targetZ;
                             nextH = targetH;
-                        } else {
-                            console.log(`Bloqueado 'f': Altura alvo ${targetH} vs Atual ${currH}`);
                         }
-                    } else {
-                        console.log("Bloqueado 'f': Fim do mapa");
                     }
                     break;
-
-                case "p": // PULO
+                case "p":
                     if (isTargetValid) {
-                        // Regra: Sobe 1 nível
                         if (targetH === currH + 1) {
                             nextX = targetX;
                             nextZ = targetZ;
                             nextH = targetH;
                         }
-                        // Regra: Mesma altura -> Pula no lugar não se move
-                        else if (targetH === currH) {
-                            console.log("Pulo no lugar (mesma altura)");
-                        }
-                        // Qualquer outra diferença (muito alto, ou descendo) não faz nada
-                        else {
-                            console.log(`Bloqueado 'p': Altura inválida para pulo`);
-                        }
+                    } else if (targetH === currH) {
+                        // Pula no lugar
                     }
                     break;
-
-                // ROTAÇÕES (Sem verificação de colisão)
                 case "t":
                     nextRot = (currRot + 2) % 4;
                     break;
@@ -121,24 +95,31 @@ export default function App() {
                 case "d":
                     nextRot = (currRot + 3) % 4;
                     break;
-
                 case "b":
-                    console.log(`Botão pressionado em [${currX}, ${currZ}]`);
+                    const rawVal = getRawValue(currX, currZ, activeStage.floor);
+                    const isButton = rawVal > 5 || rawVal === 0;
+
+                    if (isButton) {
+                        const key = `${currX}-${currZ}`;
+                        if (currActiveButtons.includes(key)) {
+                            currActiveButtons = currActiveButtons.filter((k) => k !== key);
+                        } else {
+                            currActiveButtons.push(key);
+                        }
+                        setActiveButtons([...currActiveButtons]);
+                    }
                     break;
             }
 
-            // Atualiza as variáveis locais para o próximo passo do loop
             currX = nextX;
             currZ = nextZ;
             currRot = nextRot;
             currH = nextH;
 
-            // Atualiza os estados
             setPlayerGridPos([currX, currZ]);
             setPlayerRotation(currRot);
             setCurrentBlockHeight(currH);
         }
-
         setIsExecuting(false);
     };
 
@@ -146,14 +127,22 @@ export default function App() {
         setActiveStage(stage);
         setPlayerGridPos(stage.playerPosition);
 
-        // Reseta altura inicial
-        const grid = parseGrid(stage.floor);
-        const h = getBlockHeight(stage.playerPosition[0], stage.playerPosition[1], grid);
+        const heightMatrix = parseGridToHeights(stage.floor);
+        const h = getBlockHeight(stage.playerPosition[0], stage.playerPosition[1], heightMatrix);
         setCurrentBlockHeight(h === -1 ? 0 : h);
 
-        setPlayerRotation(2);
+        setPlayerRotation(0);
         setCommands("");
+        setActiveButtons([]);
     };
+
+    const mapRows = activeStage.floor.trim().split("\n");
+    const mapDepth = mapRows.length;
+    // Calcula a largura máxima do mapa
+    const mapWidth = Math.max(...mapRows.map((r) => r.length));
+
+    const visualPlayerX = playerGridPos[0] - mapWidth / 2 + 0.5;
+    const visualPlayerZ = playerGridPos[1] - mapDepth / 2 + 0.5;
 
     return (
         <div className="main-container">
@@ -191,7 +180,7 @@ export default function App() {
                     </button>
                 </div>
                 <small style={{ color: "#aaa", fontSize: "0.8rem", marginTop: 5 }}>
-                    f = frente, e = esq, d = dir, t = trás, p = pula, b = botão
+                    f=frente, e=esq, d=dir, t=trás, p=pula, b=botão
                 </small>
             </div>
 
@@ -202,14 +191,14 @@ export default function App() {
                     <pointLight position={[-10, -5, -10]} intensity={0.2} />
 
                     <group position={[0, 0, 0]}>
-                        <Floor grid={activeStage.floor} />
+                        <Floor grid={activeStage.floor} activeButtons={activeButtons} />
+
                         <Player
-                            gridPosition={playerGridPos}
+                            gridPosition={[visualPlayerX, visualPlayerZ]}
                             rotationIndex={playerRotation}
                             blockHeight={currentBlockHeight}
                         />
                     </group>
-
                     <OrbitControls />
                 </Canvas>
             </div>
@@ -217,29 +206,34 @@ export default function App() {
     );
 }
 
-// ______________________________ Functions ______________________________ //
-
-// Transforma a string do mapa em uma matriz de números para ajudar no controle da altura do player
-const parseGrid = (gridString: string) => {
+// _________________________ Functions__________________________ //
+const parseGridToHeights = (gridString: string) => {
     return gridString
         .trim()
         .split("\n")
         .map((row) =>
             row.split("").map((char) => {
                 if (char === " ") return 0;
-                let value: number = parseInt(char);
-                const button: boolean = value > 5 || value === 0;
-
-                if (button) value = value === 0 ? 5 : value - 5;
-
-                return value;
+                let val = parseInt(char);
+                if (val > 5) val = val - 5;
+                if (val === 0) val = 5;
+                return val;
             })
         );
 };
 
-// Pega a altura de um bloco específico (retorna -1 se fora do mapa)
-const getBlockHeight = (x: number, z: number, gridMatrix: number[][]) => {
-    if (z < 0 || z >= gridMatrix.length) return -1; // Fora das linhas (Z)
-    if (x < 0 || x >= gridMatrix[z].length) return -1; // Fora das colunas (X)
-    return gridMatrix[z][x];
+const getRawValue = (x: number, z: number, gridString: string) => {
+    const rows = gridString.trim().split("\n");
+    if (z < 0 || z >= rows.length) return -1;
+    const row = rows[z].split("");
+    if (x < 0 || x >= row.length) return -1;
+    const char = row[x];
+    if (char === " ") return 0;
+    return parseInt(char);
+};
+
+const getBlockHeight = (x: number, z: number, heightMatrix: number[][]) => {
+    if (z < 0 || z >= heightMatrix.length) return -1;
+    if (x < 0 || x >= heightMatrix[z].length) return -1;
+    return heightMatrix[z][x];
 };
