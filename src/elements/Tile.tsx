@@ -1,6 +1,5 @@
 import { RoundedBox } from "@react-three/drei";
 import type { TileProps } from "./Types";
-import Player from "./player/Player";
 
 export default function Tile({ position, heigth, steped = false }: TileProps) {
     const tiles = [];
@@ -51,7 +50,7 @@ export default function Tile({ position, heigth, steped = false }: TileProps) {
     if (steped)
         tiles.push(
             <group position={[position[0], (heightInt - 1) * 0.5, position[2]]}>
-                <Player />
+                {/* <Player /> */}
             </group>
         );
 

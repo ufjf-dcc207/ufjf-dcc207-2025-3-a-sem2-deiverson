@@ -6,13 +6,20 @@ import Torso from "./Torso";
 type PlayerProps = {
     scale?: number;
     gridPosition: [number, number];
-    rotationIndex: number; // Recebe 0, 1, 2 ou 3
+    rotationIndex: number;
+    blockHeight?: number;
 };
 
-export default function Player({ scale = 0.5, gridPosition, rotationIndex }: PlayerProps) {
+export default function Player({
+    scale = 0.5,
+    gridPosition,
+    rotationIndex,
+    blockHeight = 0,
+}: PlayerProps) {
     // Posição do Grid
     const worldX = gridPosition[0];
     const worldZ = gridPosition[1];
+    const worldY = (blockHeight - 1) * 0.5;
 
     // Converte o índice (0-3) para radianos (0, 90, 180, 270 graus)
     const rotationY = rotationIndex * (Math.PI / 2);
@@ -20,7 +27,7 @@ export default function Player({ scale = 0.5, gridPosition, rotationIndex }: Pla
     return (
         <group
             // Aplica a posição e rotação"
-            position={[worldX, 0, worldZ]}
+            position={[worldX, worldY, worldZ]}
             rotation={[0, rotationY, 0]}
             scale={scale}
         >
