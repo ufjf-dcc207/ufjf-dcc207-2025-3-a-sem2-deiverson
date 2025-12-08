@@ -4,6 +4,7 @@ import { OrbitControls } from "@react-three/drei";
 import Floor from "./elements/Floor";
 import Player from "./elements/player/Player";
 import CommandTape from "./elements/CommandTape";
+import VictoryModal from "./elements/VictoryModal";
 import { stagesList } from "./elements/Stages";
 import type { Stage } from "./elements/Types";
 import "./App.css";
@@ -18,6 +19,8 @@ export default function App() {
     );
     const [playerRotation, setPlayerRotation] = useState<number>(0);
 
+    const [isVictory, setIsVictory] = useState(false); // Estado de vitória
+
     // Inicialização da altura
     const [currentBlockHeight, setCurrentBlockHeight] = useState(() => {
         const heightMatrix = parseGridToHeights(stagesList[0].floor);
@@ -31,6 +34,8 @@ export default function App() {
     const [isExecuting, setIsExecuting] = useState(false);
 
     const resetToStart = (stage: Stage, newCommands: string = "") => {
+        setIsVictory(false);
+
         // Define a fase e comandos
         setActiveStage(stage);
         setCommands(newCommands);
@@ -47,8 +52,6 @@ export default function App() {
         const h = getBlockHeight(x, z, heightMatrix);
         setCurrentBlockHeight(h === -1 ? 0 : h);
     };
-
-    // --- HANDLERS DE EVENTOS ---
 
     // Quando o usuário DIGITA algo novo
     const handleCommandsUpdate = (val: string) => {
@@ -70,6 +73,18 @@ export default function App() {
         resetToStart(activeStage, commands);
     };
 
+    const handleNextStage = () => {
+        const currentIndex = stagesList.findIndex((s) => s.id === activeStage.id);
+        const nextStage = stagesList[currentIndex + 1];
+
+        if (nextStage) {
+            handleChangeStage(nextStage);
+        } else {
+            alert("Você zerou o jogo! Resetando para a primeira fase.");
+            handleChangeStage(stagesList[0]);
+        }
+    };
+
     const executeStep = async () => {
         if (isExecuting) return;
         if (commandIndex >= commands.length) return;
@@ -86,7 +101,7 @@ export default function App() {
 
         let currActiveButtons = [...activeButtons];
 
-        // Lógica de Movimento
+        // Lógica de Alvo
         let targetX = currX;
         let targetZ = currZ;
 
@@ -138,6 +153,7 @@ export default function App() {
                     } else {
                         currActiveButtons.push(key);
                     }
+
                     setActiveButtons([...currActiveButtons]);
                 }
                 break;
@@ -146,7 +162,18 @@ export default function App() {
         setPlayerGridPos([nextX, nextZ]);
         setPlayerRotation(nextRot);
         setCurrentBlockHeight(nextH);
-        setCommandIndex((prev) => prev + 1);
+
+        const nextIndex = commandIndex + 1;
+        setCommandIndex(nextIndex);
+
+        if (nextIndex === commands.length) {
+            const totalButtons = countTotalButtons(activeStage.floor);
+
+            if (totalButtons > 0 && currActiveButtons.length === totalButtons) {
+                setIsVictory(true);
+            }
+        }
+
         setIsExecuting(false);
     };
 
@@ -160,6 +187,8 @@ export default function App() {
 
     return (
         <div className="main-container">
+            <VictoryModal isOpen={isVictory} onNextStage={handleNextStage} />
+
             <div className="sidebar-container">
                 <div className="menu-container">
                     <h2>Selecione a Fase</h2>
@@ -211,17 +240,15 @@ export default function App() {
 
 // _________________________ Functions__________________________ //
 const parseGridToHeights = (gridString: string) => {
-    return gridString
-        .split("\n")
-        .map((row) =>
-            row.split("").map((char) => {
-                if (char === " ") return 0;
-                let val = parseInt(char);
-                if (val > 5) val = val - 5;
-                if (val === 0) val = 5;
-                return val;
-            })
-        );
+    return gridString.split("\n").map((row) =>
+        row.split("").map((char) => {
+            if (char === " ") return 0;
+            let val = parseInt(char);
+            if (val > 5) val = val - 5;
+            if (val === 0) val = 5;
+            return val;
+        })
+    );
 };
 
 const getRawValue = (x: number, z: number, gridString: string) => {
@@ -238,4 +265,20 @@ const getBlockHeight = (x: number, z: number, heightMatrix: number[][]) => {
     if (z < 0 || z >= heightMatrix.length) return -1;
     if (x < 0 || x >= heightMatrix[z].length) return -1;
     return heightMatrix[z][x];
+};
+
+const countTotalButtons = (gridString: string) => {
+    let count = 0;
+    const rows = gridString.trim().split("\n");
+    rows.forEach((row) => {
+        row.split("").forEach((char) => {
+            if (char === " ") return;
+            const val = parseInt(char);
+            // Lógica de botão: 0 ou > 5
+            if (val === 0 || val > 5) {
+                count++;
+            }
+        });
+    });
+    return count;
 };

@@ -30,3 +30,8 @@ export type CommandTapeProps = {
     onReset: () => void;
     onRetry: () => void;
 };
+
+export type VictoryModalProps = {
+    isOpen: boolean;
+    onNextStage: () => void;
+};

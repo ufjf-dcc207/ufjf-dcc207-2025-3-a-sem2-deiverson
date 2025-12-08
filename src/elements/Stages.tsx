@@ -4,14 +4,15 @@ export const stagesList: Stage[] = [
     {
         id: 1,
         name: "Fase 1",
-        floor: `1
-2-716
-8-2-2
-4-3-1
-0-4-7
-448-8
+        floor: `--6  
+--1
+--162
+----3
+--172
+--1
+--6
 `,
-        playerPosition: [0, 0],
+        playerPosition: [2, 0],
     },
     {
         id: 2,
@@ -37,14 +38,13 @@ export const stagesList: Stage[] = [
     {
         id: 4,
         name: "Fase 4",
-        floor: `--6  
---1
---162
-----3
---172
---1
---6
+        floor: `1
+2-716
+8-2-2
+4-3-1
+0-4-7
+448-8
 `,
-        playerPosition: [2, 0],
+        playerPosition: [0, 0],
     },
 ];
