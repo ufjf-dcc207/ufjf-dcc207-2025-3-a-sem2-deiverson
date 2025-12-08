@@ -5,8 +5,8 @@ export type MapObjectProps = {
 export type TileProps = {
     height: number;
     position: [number, number, number];
-    isButton?: boolean; 
-    isActive?: boolean; 
+    isButton?: boolean;
+    isActive?: boolean;
 };
 
 export type FloorProps = {
@@ -19,4 +19,14 @@ export type Stage = {
     name: string;
     floor: string;
     playerPosition: [number, number];
+};
+
+export type CommandTapeProps = {
+    commands: string;
+    commandIndex: number;
+    isExecuting: boolean;
+    onInputChange: (newCommands: string) => void;
+    onExecuteStep: () => void;
+    onReset: () => void;
+    onRetry: () => void;
 };

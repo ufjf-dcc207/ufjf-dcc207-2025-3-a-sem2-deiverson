@@ -6,12 +6,12 @@ export const stagesList: Stage[] = [
         name: "Fase 1",
         floor: `1
 2 716
-8 1 2
-4 1 1
+8 2 2
+4 3 1
 0 4 7
-448 2
+448 8
 `,
-        playerPosition: [0, 2],
+        playerPosition: [0, 0],
     },
     {
         id: 2,

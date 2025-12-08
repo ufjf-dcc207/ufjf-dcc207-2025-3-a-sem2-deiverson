@@ -3,17 +3,22 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import Floor from "./elements/Floor";
 import Player from "./elements/player/Player";
+import CommandTape from "./elements/CommandTape";
 import { stagesList } from "./elements/Stages";
 import type { Stage } from "./elements/Types";
 import "./App.css";
 
 export default function App() {
+    // --- ESTADOS ---
     const [activeStage, setActiveStage] = useState<Stage>(stagesList[0]);
     const [activeButtons, setActiveButtons] = useState<string[]>([]);
+
     const [playerGridPos, setPlayerGridPos] = useState<[number, number]>(
         stagesList[0].playerPosition
     );
+    const [playerRotation, setPlayerRotation] = useState<number>(0);
 
+    // Inicialização da altura
     const [currentBlockHeight, setCurrentBlockHeight] = useState(() => {
         const heightMatrix = parseGridToHeights(stagesList[0].floor);
         const [x, z] = stagesList[0].playerPosition;
@@ -21,22 +26,57 @@ export default function App() {
         return h === -1 ? 0 : h;
     });
 
-    const [playerRotation, setPlayerRotation] = useState<number>(0);
     const [commands, setCommands] = useState("");
+    const [commandIndex, setCommandIndex] = useState(0);
     const [isExecuting, setIsExecuting] = useState(false);
 
-    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const resetToStart = (stage: Stage, newCommands: string = "") => {
+        // 1. Define a fase e comandos
+        setActiveStage(stage);
+        setCommands(newCommands);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        if (/^[fedtpb]*$/i.test(val)) setCommands(val);
+        // 2. Reseta o jogo
+        setPlayerGridPos(stage.playerPosition);
+        setPlayerRotation(0);
+        setActiveButtons([]);
+        setCommandIndex(0); // Volta fita para o início
+
+        // 3. Recalcula altura
+        const heightMatrix = parseGridToHeights(stage.floor);
+        const [x, z] = stage.playerPosition;
+        const h = getBlockHeight(x, z, heightMatrix);
+        setCurrentBlockHeight(h === -1 ? 0 : h);
     };
 
-    const executeCommands = async () => {
+    // --- HANDLERS DE EVENTOS ---
+
+    // Quando o usuário DIGITA algo novo
+    const handleCommandsUpdate = (val: string) => {
+        resetToStart(activeStage, val);
+    };
+
+    // Quando o usuário TROCA de fase
+    const handleChangeStage = (stage: Stage) => {
+        resetToStart(stage, "");
+    };
+
+    // Quando o usuário clica no botão RESET
+    const handleManualReset = () => {
+        resetToStart(activeStage, "");
+    };
+
+    const handleRetry = () => {
+        // Chama o reset passando a fase atual E os comandos atuais
+        resetToStart(activeStage, commands);
+    };
+    // --- EXECUÇÃO PASSO A PASSO ---
+    const executeStep = async () => {
         if (isExecuting) return;
+        if (commandIndex >= commands.length) return;
+
         setIsExecuting(true);
 
-        const chars = commands.toLowerCase().split("");
+        const char = commands[commandIndex].toLowerCase();
         const heightMatrix = parseGridToHeights(activeStage.floor);
 
         let currX = playerGridPos[0];
@@ -46,142 +86,105 @@ export default function App() {
 
         let currActiveButtons = [...activeButtons];
 
-        for (let char of chars) {
-            await wait(500);
+        // Lógica de Movimento
+        let targetX = currX;
+        let targetZ = currZ;
 
-            let targetX = currX;
-            let targetZ = currZ;
+        if (currRot === 0) targetZ += 1;
+        else if (currRot === 1) targetX += 1;
+        else if (currRot === 2) targetZ -= 1;
+        else if (currRot === 3) targetX -= 1;
 
-            if (currRot === 0) targetZ += 1;
-            else if (currRot === 1) targetX += 1;
-            else if (currRot === 2) targetZ -= 1;
-            else if (currRot === 3) targetX -= 1;
+        const targetH = getBlockHeight(targetX, targetZ, heightMatrix);
+        const isTargetValid = targetH !== -1;
 
-            const targetH = getBlockHeight(targetX, targetZ, heightMatrix);
-            const isTargetValid = targetH !== -1;
+        let nextX = currX;
+        let nextZ = currZ;
+        let nextH = currH;
+        let nextRot = currRot;
 
-            let nextX = currX;
-            let nextZ = currZ;
-            let nextH = currH;
-            let nextRot = currRot;
+        switch (char) {
+            case "f":
+                if (isTargetValid && (targetH === currH || targetH === currH - 1)) {
+                    nextX = targetX;
+                    nextZ = targetZ;
+                    nextH = targetH;
+                }
+                break;
+            case "p":
+                if (isTargetValid && targetH === currH + 1) {
+                    nextX = targetX;
+                    nextZ = targetZ;
+                    nextH = targetH;
+                }
+                break;
+            case "t":
+                nextRot = (currRot + 2) % 4;
+                break;
+            case "e":
+                nextRot = (currRot + 1) % 4;
+                break;
+            case "d":
+                nextRot = (currRot + 3) % 4;
+                break;
+            case "b":
+                const rawVal = getRawValue(currX, currZ, activeStage.floor);
+                const isButton = rawVal > 5 || rawVal === 0;
 
-            switch (char) {
-                case "f":
-                    if (isTargetValid) {
-                        if (targetH === currH || targetH === currH - 1) {
-                            nextX = targetX;
-                            nextZ = targetZ;
-                            nextH = targetH;
-                        }
+                if (isButton) {
+                    const key = `${currX}-${currZ}`;
+                    if (currActiveButtons.includes(key)) {
+                        currActiveButtons = currActiveButtons.filter((k) => k !== key);
+                    } else {
+                        currActiveButtons.push(key);
                     }
-                    break;
-                case "p":
-                    if (isTargetValid) {
-                        if (targetH === currH + 1) {
-                            nextX = targetX;
-                            nextZ = targetZ;
-                            nextH = targetH;
-                        }
-                    } else if (targetH === currH) {
-                        // Pula no lugar
-                    }
-                    break;
-                case "t":
-                    nextRot = (currRot + 2) % 4;
-                    break;
-                case "e":
-                    nextRot = (currRot + 1) % 4;
-                    break;
-                case "d":
-                    nextRot = (currRot + 3) % 4;
-                    break;
-                case "b":
-                    const rawVal = getRawValue(currX, currZ, activeStage.floor);
-                    const isButton = rawVal > 5 || rawVal === 0;
-
-                    if (isButton) {
-                        const key = `${currX}-${currZ}`;
-                        if (currActiveButtons.includes(key)) {
-                            currActiveButtons = currActiveButtons.filter((k) => k !== key);
-                        } else {
-                            currActiveButtons.push(key);
-                        }
-                        setActiveButtons([...currActiveButtons]);
-                    }
-                    break;
-            }
-
-            currX = nextX;
-            currZ = nextZ;
-            currRot = nextRot;
-            currH = nextH;
-
-            setPlayerGridPos([currX, currZ]);
-            setPlayerRotation(currRot);
-            setCurrentBlockHeight(currH);
+                    setActiveButtons([...currActiveButtons]);
+                }
+                break;
         }
+
+        setPlayerGridPos([nextX, nextZ]);
+        setPlayerRotation(nextRot);
+        setCurrentBlockHeight(nextH);
+        setCommandIndex((prev) => prev + 1);
         setIsExecuting(false);
     };
 
-    const handleChangeStage = (stage: Stage) => {
-        setActiveStage(stage);
-        setPlayerGridPos(stage.playerPosition);
-
-        const heightMatrix = parseGridToHeights(stage.floor);
-        const h = getBlockHeight(stage.playerPosition[0], stage.playerPosition[1], heightMatrix);
-        setCurrentBlockHeight(h === -1 ? 0 : h);
-
-        setPlayerRotation(0);
-        setCommands("");
-        setActiveButtons([]);
-    };
-
+    // Cálculo visual do player (Offset)
     const mapRows = activeStage.floor.trim().split("\n");
-    const mapDepth = mapRows.length;
-    // Calcula a largura máxima do mapa
     const mapWidth = Math.max(...mapRows.map((r) => r.length));
+    const mapDepth = mapRows.length;
 
     const visualPlayerX = playerGridPos[0] - mapWidth / 2 + 0.5;
     const visualPlayerZ = playerGridPos[1] - mapDepth / 2 + 0.5;
 
     return (
         <div className="main-container">
-            <div className="menu-container">
-                <h2>Selecione a Fase</h2>
-                <div className="button-group">
-                    {stagesList.map((stage) => (
-                        <button
-                            key={stage.id}
-                            className={activeStage.id === stage.id ? "active" : ""}
-                            onClick={() => handleChangeStage(stage)}
-                        >
-                            {stage.name}
-                        </button>
-                    ))}
+            <div className="sidebar-container">
+                <div className="menu-container">
+                    <h2>Selecione a Fase</h2>
+                    <div className="button-group">
+                        {stagesList.map((stage) => (
+                            <button
+                                key={stage.id}
+                                className={activeStage.id === stage.id ? "active" : ""}
+                                onClick={() => handleChangeStage(stage)}
+                            >
+                                {stage.name}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
 
-            <div className="controls-container">
-                <div style={{ display: "flex", gap: 10 }}>
-                    <input
-                        type="text"
-                        value={commands}
-                        onChange={handleInputChange}
-                        placeholder="Comandos: f, e, d, t, p, b"
-                        disabled={isExecuting}
-                        className="command-input"
-                    />
-                    <button
-                        onClick={executeCommands}
-                        disabled={isExecuting || commands.length === 0}
-                        className={`exec-button ${isExecuting ? "disabled" : ""}`}
-                    >
-                        {isExecuting ? "..." : "Executar"}
-                    </button>
-                </div>
-                <small style={{ color: "#aaa", fontSize: "0.8rem", marginTop: 5 }}>
-                    f=frente, e=esq, d=dir, t=trás, p=pula, b=botão
-                </small>
+                <CommandTape
+                    commands={commands}
+                    commandIndex={commandIndex}
+                    isExecuting={isExecuting}
+                    onInputChange={handleCommandsUpdate} // Passa a função que atualiza E reseta
+                    onExecuteStep={executeStep}
+                    onReset={handleManualReset}
+                    onRetry={handleRetry}
+                />
             </div>
 
             <div className="canvas-frame">
