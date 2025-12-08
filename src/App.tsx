@@ -31,17 +31,17 @@ export default function App() {
     const [isExecuting, setIsExecuting] = useState(false);
 
     const resetToStart = (stage: Stage, newCommands: string = "") => {
-        // 1. Define a fase e comandos
+        // Define a fase e comandos
         setActiveStage(stage);
         setCommands(newCommands);
 
-        // 2. Reseta o jogo
+        // Reseta o jogo
         setPlayerGridPos(stage.playerPosition);
         setPlayerRotation(0);
         setActiveButtons([]);
         setCommandIndex(0); // Volta fita para o início
 
-        // 3. Recalcula altura
+        // Recalcula altura
         const heightMatrix = parseGridToHeights(stage.floor);
         const [x, z] = stage.playerPosition;
         const h = getBlockHeight(x, z, heightMatrix);
@@ -69,7 +69,7 @@ export default function App() {
         // Chama o reset passando a fase atual E os comandos atuais
         resetToStart(activeStage, commands);
     };
-    // --- EXECUÇÃO PASSO A PASSO ---
+
     const executeStep = async () => {
         if (isExecuting) return;
         if (commandIndex >= commands.length) return;
@@ -212,7 +212,6 @@ export default function App() {
 // _________________________ Functions__________________________ //
 const parseGridToHeights = (gridString: string) => {
     return gridString
-        .trim()
         .split("\n")
         .map((row) =>
             row.split("").map((char) => {
@@ -226,7 +225,7 @@ const parseGridToHeights = (gridString: string) => {
 };
 
 const getRawValue = (x: number, z: number, gridString: string) => {
-    const rows = gridString.trim().split("\n");
+    const rows = gridString.split("\n");
     if (z < 0 || z >= rows.length) return -1;
     const row = rows[z].split("");
     if (x < 0 || x >= row.length) return -1;
