@@ -231,7 +231,7 @@ export default function App() {
                             blockHeight={currentBlockHeight}
                         />
                     </group>
-                    <OrbitControls />
+                    <OrbitControls enablePan={false} enableZoom={false} />
                 </Canvas>
             </div>
         </div>
