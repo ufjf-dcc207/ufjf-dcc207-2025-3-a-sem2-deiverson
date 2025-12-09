@@ -1,9 +1,5 @@
 import Tile from "./Tile";
-
-type FloorProps = {
-    grid: string;
-    activeButtons?: string[];
-};
+import type { FloorProps } from "./Types";
 
 export default function Floor({ grid, activeButtons = [] }: FloorProps) {
     const rows = grid.trim().split("\n");

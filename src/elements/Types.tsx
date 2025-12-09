@@ -11,7 +11,7 @@ export type TileProps = {
 
 export type FloorProps = {
     grid: string;
-    personaPosition?: [number, number];
+    activeButtons?: string[];
 };
 
 export type Stage = {

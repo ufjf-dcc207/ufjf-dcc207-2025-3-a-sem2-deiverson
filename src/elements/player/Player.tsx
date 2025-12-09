@@ -2,13 +2,7 @@ import Braco from "./Braco";
 import Cabeca from "./Cabeca";
 import Perna from "./Perna";
 import Torso from "./Torso";
-
-type PlayerProps = {
-    scale?: number;
-    gridPosition: [number, number];
-    rotationIndex: number;
-    blockHeight?: number;
-};
+import type { PlayerProps } from "./types";
 
 export default function Player({
     scale = 0.5,
